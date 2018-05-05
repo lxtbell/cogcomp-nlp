@@ -49,15 +49,15 @@ public abstract class AbstractIncrementalCorpusReader<T> extends AnnotationReade
     protected boolean suppressFileErrors;
     private int numFilesSucceeded;
     private int numFilesFailed;
+    private List<String> logOfFilesFailed = new ArrayList<>();
 
     /**
      * ResourceManager must specify the fields {@link CorpusReaderConfigurator}.CORPUS_NAME and
      * .CORPUS_DIRECTORY, plus whatever is required by the derived class for initializeReader().
      *
      * @param rm ResourceManager
-     * @throws Exception
      */
-    public AbstractIncrementalCorpusReader(ResourceManager rm) throws Exception {
+    public AbstractIncrementalCorpusReader(ResourceManager rm) {
         super(rm);
     }
 
@@ -122,6 +122,7 @@ public abstract class AbstractIncrementalCorpusReader<T> extends AnnotationReade
                     } else {
                         numFilesFailed++;
                         isFailed = true;
+                        logOfFilesFailed.add(e.getMessage());
                     }
                 }
                 if (!isFailed)
@@ -170,9 +171,12 @@ public abstract class AbstractIncrementalCorpusReader<T> extends AnnotationReade
 
     public String generateReport() {
         StringBuilder bldr = new StringBuilder();
-        bldr.append("processed ").append(String.valueOf(numFilesSucceeded  + numFilesFailed));
+        bldr.append("Processed ").append(String.valueOf(numFilesSucceeded  + numFilesFailed));
         bldr.append(" files, of which ").append(String.valueOf(numFilesFailed)).append(" could not be read.");
         bldr.append(System.lineSeparator());
+        for (String log : logOfFilesFailed) {
+            bldr.append(log).append(System.lineSeparator());
+        }
         return bldr.toString();
     }
 
