@@ -14,6 +14,7 @@ import edu.illinois.cs.cogcomp.core.utilities.AvoidUsing;
 import java.io.*;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
@@ -80,6 +81,15 @@ public class LineIO {
     public static <T> ArrayList<T> read(String fileName, String charsetName,
             ITransformer<String, T> transformer) throws FileNotFoundException {
         return read(new FileInputStream(fileName), charsetName, transformer);
+    }
+
+    /**
+     * This function reads the lines in an InputStream and returns them.
+     *
+     * @return An {@code ArrayList} of the lines of the InputStream.
+     */
+    public static ArrayList<String> read(InputStream stream) throws FileNotFoundException {
+        return read(stream, Charset.defaultCharset().name(), identityTransformer);
     }
 
     /**
