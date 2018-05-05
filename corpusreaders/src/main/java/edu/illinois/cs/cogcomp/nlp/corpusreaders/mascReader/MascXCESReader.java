@@ -7,8 +7,6 @@
  */
 package edu.illinois.cs.cogcomp.nlp.corpusreaders.mascReader;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -18,10 +16,10 @@ import org.xml.sax.SAXParseException;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
+import java.io.InputStream;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,10 +40,8 @@ import edu.illinois.cs.cogcomp.core.datastructures.ViewNames;
 import edu.illinois.cs.cogcomp.core.datastructures.textannotation.SpanLabelView;
 import edu.illinois.cs.cogcomp.core.datastructures.textannotation.TextAnnotation;
 import edu.illinois.cs.cogcomp.core.datastructures.textannotation.TokenLabelView;
-import edu.illinois.cs.cogcomp.core.io.IOUtils;
 import edu.illinois.cs.cogcomp.core.utilities.SerializationHelper;
-import edu.illinois.cs.cogcomp.nlp.corpusreaders.AnnotationReader;
-import edu.illinois.cs.cogcomp.nlp.corpusreaders.CorpusReaderConfigurator;
+import edu.illinois.cs.cogcomp.nlp.corpusreaders.BasicIncrementalCorpusReader;
 import edu.illinois.cs.cogcomp.nlp.tokenizer.Tokenizer;
 
 /**
@@ -78,7 +74,7 @@ import edu.illinois.cs.cogcomp.nlp.tokenizer.Tokenizer;
  *
  * @author Xiaotian Le
  */
-public class MascXCESReader extends AnnotationReader<TextAnnotation> {
+public class MascXCESReader extends BasicIncrementalCorpusReader<TextAnnotation> {
 
     private static final String TOKEN_ELEMENT = "tok";  // tokens are stored in "tok" XML elements
     private static final String SENTENCE_ELEMENT = "s";  // sentences are stored in "s" XML elements
@@ -125,76 +121,36 @@ public class MascXCESReader extends AnnotationReader<TextAnnotation> {
         SPAN_LABEL_PROCESSORS.add(new SpanLabelProcessor("person", ViewNames.NER_ONTONOTES, elem -> "PERSON"));  // NER Ontonotes Person Processor
     }
 
-    private static Logger logger = LoggerFactory.getLogger(MascXCESReader.class);
-    private List<TextAnnotation> textAnnotations = new ArrayList<>();
-    private List<String> failureLogs = new ArrayList<>();
-
     /**
      * This expects a directory that contains XCES format files.
      * @param corpusName The name of the corpus, e.g. MASC-3.0.0
      * @param corpusDirectory The folder of the source files
      * @param fileExtension Should be ".xml" for the XCES XML source files
      */
-    public MascXCESReader(String corpusName, String corpusDirectory, String fileExtension)
-            throws ParserConfigurationException {
-        super(CorpusReaderConfigurator.buildResourceManager(corpusName, corpusDirectory, corpusDirectory, fileExtension, fileExtension));
-
-        this.currentAnnotationId = 0;
-
-        String[] sourceFiles;
-        try {
-            sourceFiles = IOUtils.lsFilesRecursive(corpusDirectory, file ->
-                    file.isDirectory() || file.getAbsolutePath().endsWith(fileExtension));
-        } catch (IOException e) {
-            logger.error("Error listing directory.");
-            logger.error(e.getMessage());
-            return;
-        }
-
-        Path corpusAbsolutePath = Paths.get(corpusDirectory).toAbsolutePath();
-        Arrays.sort(sourceFiles);
-        for (String file : sourceFiles) {
-            String error = null;
-
-            try {
-                textAnnotations.add(loadAnnotationFile(
-                        corpusName,
-                        file,
-                        corpusAbsolutePath.relativize(Paths.get(file)).toString()
-                ));
-                logger.info("Created TextAnnotation from [" + file +"].");
-            }
-            catch (ParserConfigurationException e) {
-                throw e;
-            }
-            catch (IOException e) {
-                error = "[" + file + "] Error reading file: " + e.getMessage();
-            }
-            catch (SAXParseException e) {
-                error = "[" + file + ":" + e.getLineNumber() + ":" + e.getColumnNumber() + "] Error parsing XML file: " + e.getMessage();
-            }
-            catch (SAXException e) {
-                error = "[" + file + "] Error parsing XML file: " + e.getMessage();
-            }
-            catch (Exception e) {
-                error = "[" + file + "] Error creating TextAnnotation: " + e.getMessage();
-                e.printStackTrace();
-            }
-
-            if (error != null) {
-                logger.error(error);
-                failureLogs.add(error);
-            }
-        }
+    public MascXCESReader(String corpusName, String corpusDirectory, String fileExtension) {
+        super(corpusName, corpusDirectory, fileExtension);
     }
 
-    private static TextAnnotation loadAnnotationFile(String corpusName, String filename, String textId) throws Exception {
+    @Override
+    protected List<TextAnnotation> readFromStream(String corpusName, InputStream stream, String textId) throws IOException, AnnotationParseException {
         final String TOKEN_IDENTIFIER_KEY = "id";
 
         // Parse the XML file into DOM
         DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
-        DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
-        Document doc = dBuilder.parse(new File(filename));
+        DocumentBuilder dBuilder;
+        try {
+            dBuilder = dbFactory.newDocumentBuilder();
+        } catch (ParserConfigurationException ex) {
+            throw new AnnotationParseException("Error creating DocumentBuilder.");
+        }
+        Document doc;
+        try {
+            doc = dBuilder.parse(stream);
+        } catch (SAXParseException ex) {
+            throw new AnnotationParseException("(At Line #" + ex.getLineNumber() + " Column #" + ex.getColumnNumber() + ") Error parsing XML file: " + ex.getMessage());
+        } catch (SAXException ex) {
+            throw new AnnotationParseException("Error parsing XML file: " + ex.getMessage());
+        }
         doc.getDocumentElement().normalize();  // Merge adjacent texts with no tags between
 
         List<String> tokens = new ArrayList<>();
@@ -278,7 +234,7 @@ public class MascXCESReader extends AnnotationReader<TextAnnotation> {
             createSpanLabelView(entry.getValue().stream(), ta, entry.getKey(), true);  // span labels in MASC dataset might overlap
         }
 
-        return ta;
+        return Collections.singletonList(ta);
     }
 
     /**
@@ -329,38 +285,6 @@ public class MascXCESReader extends AnnotationReader<TextAnnotation> {
                 span.getFirst().getFirst(), span.getFirst().getSecond(), span.getSecond(), 1.0));
         ta.addView(viewName, view);
         return view.count();
-    }
-
-    @Override
-    protected void initializeReader() {}
-
-    @Override
-    public boolean hasNext() {
-        return textAnnotations.size() > currentAnnotationId;
-    }
-
-    @Override
-    public TextAnnotation next() {
-        return textAnnotations.get(currentAnnotationId++);
-    }
-
-    @Override
-    public String generateReport() {
-        StringBuilder builder = new StringBuilder();
-        builder
-                .append("Number of TextAnnotations generated:\t")
-                .append(textAnnotations.size())
-                .append(System.lineSeparator());
-        builder
-                .append("Number of files unable to be processed:\t")
-                .append(failureLogs.size())
-                .append(System.lineSeparator());
-        for (String log : failureLogs) {
-            builder
-                    .append(log)
-                    .append(System.lineSeparator());
-        }
-        return builder.toString();
     }
 
     public static void main(String[] args) throws Exception {

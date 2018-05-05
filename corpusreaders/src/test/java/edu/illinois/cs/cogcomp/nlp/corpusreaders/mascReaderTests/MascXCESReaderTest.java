@@ -32,7 +32,11 @@ public class MascXCESReaderTest {
 
         MascXCESReader cnr = new MascXCESReader("", Paths.get(CORPUS_DIRECTORY, "written/twitter").toString(), ".xml");
 
+        Assert.assertTrue(cnr.hasNext());
         TextAnnotation ta = cnr.next();
+        Assert.assertTrue(cnr.hasNext());
+        cnr.next();
+        Assert.assertFalse(cnr.hasNext());
 
         List<Constituent> tokens = ta.getView(ViewNames.TOKENS).getConstituents();
         Assert.assertEquals(tokens.size(), 13389);  // tok 13390, clean tok 13389
@@ -73,10 +77,5 @@ public class MascXCESReaderTest {
         Assert.assertEquals(nerOntonotes.get(3).getStartSpan(), 379);  // Singapore
         Assert.assertEquals(nerOntonotes.get(3).getEndSpan(), 380);
         Assert.assertEquals(nerOntonotes.get(3).getLabel(), "LOCATION");
-
-        Assert.assertTrue(cnr.hasNext());
-        cnr.next();
-
-        Assert.assertFalse(cnr.hasNext());
     }
 }
