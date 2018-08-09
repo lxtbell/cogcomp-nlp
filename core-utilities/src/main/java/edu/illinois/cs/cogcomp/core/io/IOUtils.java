@@ -124,6 +124,10 @@ public abstract class IOUtils {
      * Filters the files contained in a directory.
      */
     public static String[] lsFiles(String directory, FilenameFilter filter) throws IOException {
+        if (!isDirectory(directory)) {
+            throw new FileNotFoundException("Invalid directory: " + directory);
+        }
+
         File dir = new File(directory);
         ArrayList<String> files = new ArrayList<>();
         for (File filepath : dir.listFiles(filter)) {
@@ -140,6 +144,10 @@ public abstract class IOUtils {
      */
     public static String[] lsFilesRecursive(String directory, FilenameFilter filter)
             throws IOException {
+        if (!isDirectory(directory)) {
+            throw new FileNotFoundException("Invalid directory: " + directory);
+        }
+
         File dir = new File(directory);
         ArrayList<String> files = new ArrayList<>();
         for (File filepath : dir.listFiles(filter)) {
@@ -157,6 +165,10 @@ public abstract class IOUtils {
      */
     public static String[] lsFilesRecursive(String directory, FileFilter filter)
             throws IOException {
+        if (!isDirectory(directory)) {
+            throw new FileNotFoundException("Invalid directory: " + directory);
+        }
+
         File dir = new File(directory);
         ArrayList<String> files = new ArrayList<>();
         for (File filepath : dir.listFiles(filter)) {
