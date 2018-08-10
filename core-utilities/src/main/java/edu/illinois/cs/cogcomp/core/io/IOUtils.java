@@ -14,6 +14,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.regex.Pattern;
@@ -506,5 +510,85 @@ public abstract class IOUtils {
      */
     public static String shortenPath(String path) {
         return path.replaceAll("^(\\w+:|)([\\\\|/][^\\\\|/]+[\\\\|/][^\\\\|/]+[\\\\|/]).*([\\\\|/][^\\\\|/]+[\\\\|/][^\\\\|/]+)$", "$1$2...$3");
+    }
+
+    /**
+     * Read from inputStream line by line and write to outputStream
+     */
+    public static void pipe(InputStream inputStream, PrintStream outputStream) {
+        try {
+            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+            for (String line; (line = reader.readLine()) != null; ) {
+                outputStream.println(line);
+            }
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    /**
+     * Executes the specified command and arguments in a separate process with
+     * the specified environment and working directory.
+     *
+     * Spawn threads to run stdin, stdout, and stderr handlers.
+     *
+     * @param command   array containing the command to call and
+     *                  its arguments.
+     * @param envp      array of strings, each element of which
+     *                  has environment variable settings in the format
+     *                  <i>name</i>=<i>value</i>, or
+     *                  <tt>null</tt> if the subprocess should inherit
+     *                  the environment of the current process.
+     * @param dir       the working directory of the subprocess, or
+     *                  <tt>null</tt> if the subprocess should inherit
+     *                  the working directory of the current process.
+     * @return          The return value of the process
+     */
+    public static int exec(
+            String[] command, String[] envp, File dir,
+            Consumer<OutputStream> stdinProcessor, Consumer<InputStream> stdoutProcessor, Consumer<InputStream> stderrProcessor) {
+        Process process;
+        try {
+            process = Runtime.getRuntime().exec(command, envp, dir);
+        } catch (IOException ex) {
+            ex.printStackTrace();
+            return -1;
+        }
+
+        ExecutorService executor = Executors.newFixedThreadPool(3);
+        executor.submit(() -> {
+            try (OutputStream stream = process.getOutputStream()) {
+                stdinProcessor.accept(stream);
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+        });
+        executor.submit(() -> {
+            try (InputStream stream = process.getInputStream()) {
+                stdoutProcessor.accept(stream);
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+        });
+        executor.submit(() -> {
+            try (InputStream stream = process.getErrorStream()) {
+                stderrProcessor.accept(stream);
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+        });
+        executor.shutdown();
+        try {
+            executor.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
+        } catch (InterruptedException ex) {
+            ex.printStackTrace();
+        }
+
+        try {
+            return process.waitFor();
+        } catch (InterruptedException ex) {
+            ex.printStackTrace();
+            return -1;
+        }
     }
 }
