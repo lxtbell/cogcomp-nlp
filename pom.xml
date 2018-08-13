@@ -37,6 +37,7 @@
         <module>pipeline</module>
         <!--external tools -->
         <module>external/external-commons</module>
+        <module>external/cmu_ark_tweet_nlp</module>
         <module>external/clausie</module>
         <module>external/opennlp_1.8.4</module>
         <module>external/path-lstm</module>

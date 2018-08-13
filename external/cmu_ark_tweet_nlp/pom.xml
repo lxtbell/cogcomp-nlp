@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <artifactId>illinois-cogcomp-nlp</artifactId>
+        <groupId>edu.illinois.cs.cogcomp</groupId>
+        <version>4.0.4</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>cmu_ark_tweet_nlp</artifactId>
+    <name>CMU Ark Tweet NLP v0.3.2</name>
+    <description>Handlers to take care of CMU Ark Tweet NLP v0.3.2</description>
+
+    <repositories>
+        <repository>
+            <id>CogcompSoftware</id>
+            <name>CogcompSoftware</name>
+            <url>http://cogcomp.org/m2repo/</url>
+        </repository>
+        <!--To import Git projects-->
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
+    </repositories>
+
+    <dependencies>
+        <dependency>
+            <groupId>edu.illinois.cs.cogcomp</groupId>
+            <artifactId>illinois-core-utilities</artifactId>
+            <version>4.0.4</version>
+        </dependency>
+        <dependency>
+            <groupId>edu.illinois.cs.cogcomp</groupId>
+            <artifactId>external-commons</artifactId>
+            <version>4.0.4</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.brendano</groupId>
+            <artifactId>ark-tweet-nlp</artifactId>
+            <version>v0.3.2-a90653b03a-1</version>
+        </dependency>
+    </dependencies>
+</project>
