@@ -7,6 +7,8 @@
  */
 package edu.illinois.cs.cogcomp.core.utilities;
 
+import edu.illinois.cs.cogcomp.core.func.ThrowingRunnable;
+
 /**
  * This is a utility for tracking execution time.
  *
@@ -47,5 +49,15 @@ public class ExecutionTimer {
         _end = 0;
         started = false;
 
+    }
+
+    /**
+     * Measures the execution time of the lambda runnable
+     * Can be used on non-throwing lambdas as well
+     */
+    public static <T extends Throwable> double measureTimeSeconds(ThrowingRunnable<T> runnable) throws T {
+        long time = System.currentTimeMillis();
+        runnable.run();
+        return ((double) (System.currentTimeMillis() - time)) / 1000;
     }
 }
