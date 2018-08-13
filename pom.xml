@@ -38,6 +38,7 @@
         <!--external tools -->
         <module>external/external-commons</module>
         <module>external/clausie</module>
+        <module>external/opennlp_1.8.4</module>
         <module>external/path-lstm</module>
         <module>external/stanford_3.3.1</module>
         <module>external/stanford_3.8.0</module>
